@@ -285,6 +285,22 @@ knitr::opts_chunk$set(engine.opts = list(echo = FALSE, warning=FALSE,
                                          bash = '-o errexit'
 ))
 
+#----------------------------#
+# Check Cox Model assumptions
+cox_base_aGVHD24 <- coxph(
+  Surv(intxagvhd24, event_aGvhD24) ~
+    age + dnrage + gvhprhrx_R1 + donorgp + PC1 + PC2,
+  data = pheno_file,
+  x = TRUE
+)
+
+PH_base_aGVHD24 <- cox.zph(cox_base_aGVHD24)
+PH_base_aGVHD24
+PH_base_aGVHD24$table
+
+plot(PH_base_aGVHD24)
+#----------------------------#
+
 # Main cox model
 Cox_model_aGVHD24_MDS<-prepCox(genomatrix, Surv(intxagvhd24,event_aGvhD24) ~ age+ dnrage+  gvhprhrx_R1+ donorgp  + PC1+PC2,SNPInfo = snpInfo, aggregateBy = aggregate_by, data = pheno_file ,verbose = TRUE)
 
@@ -364,6 +380,21 @@ knitr::opts_chunk$set(engine.opts = list(echo = FALSE, warning=FALSE,
                                          perl = '-Mstrict -Mwarnings',
                                          bash = '-o errexit'
 ))
+
+#----------------------------#
+# Check Cox Model assumptions: aGvHD34
+cox_base_aGVHD34 <- coxph(
+  Surv(intxagvhd34, event_aGvhD34) ~
+    age + dnrage + gvhprhrx_R1 + donorgp + PC1 + PC2,
+  data = pheno_file,
+  x = TRUE
+)
+
+PH_base_aGVHD34 <- cox.zph(cox_base_aGVHD34)
+PH_base_aGVHD34$table
+
+plot(PH_base_aGVHD34)
+#----------------------------#
 
 # Main cox model
 Cox_model_aGVHD34_MDS<-prepCox(genomatrix, Surv(intxagvhd34,event_aGvhD34) ~ age+ dnrage+  gvhprhrx_R1+ donorgp + PC1+PC2,SNPInfo = snpInfo, aggregateBy = aggregate_by, data = pheno_file ,verbose = TRUE)
@@ -446,6 +477,23 @@ knitr::opts_chunk$set(engine.opts = list(echo = FALSE, warning=FALSE,
                                          perl = '-Mstrict -Mwarnings',
                                          bash = '-o errexit'
 ))
+
+#----------------------------#
+# Check Cox Model assumptions: aGvHD34
+cox_base_cGVHD <- coxph(
+  Surv(intxcgvhd, cgvhd) ~
+    age + dnrage + gvhprhrx_R1 + donorgp + PC1 + PC2,
+  data = pheno_file,
+  x = TRUE
+)
+
+PH_base_cGVHD <- cox.zph(cox_base_cGVHD)
+PH_base_cGVHD$table
+
+plot(PH_base_cGVHD)
+# all are >0.1 and plots dont show any violation of PH assumption
+#----------------------------#
+
 
 # Main cox model
 Cox_model_cGvHD_MDS<-prepCox(genomatrix, Surv(intxcgvhd,cgvhd) ~ age+ dnrage+  gvhprhrx_R1+ donorgp  + PC1+PC2,SNPInfo = snpInfo, aggregateBy = aggregate_by, data = pheno_file ,verbose = TRUE)
