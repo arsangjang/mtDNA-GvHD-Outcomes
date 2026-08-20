@@ -93,43 +93,48 @@ pheno_file = read_excel('MDS_imputed_Clinical_MDS&donor_March14th_2026.xlsx')
 genomatrix = read.table("all494_2666_binary.vcf.txt",header=TRUE)
 snpInfo = read_excel('SNP_POS_ALT_Func_2666_494_R2.xlsx')
 
-
-pheno_file$event_aGvhD24<-as.numeric(pheno_file$event_aGvhD24)
-pheno_file$event_aGvhD34<-as.numeric(pheno_file$event_aGvhD34)
-pheno_file$intxagvhd24<-as.numeric(pheno_file$intxagvhd24)
-pheno_file$intxagvhd34<-as.numeric(pheno_file$intxagvhd34)
-pheno_file$intxcgvhd<-as.numeric(pheno_file$intxcgvhd)
-pheno_file$cgvhd<-as.numeric(pheno_file$cgvhd)
-
-pheno_file$PC1<-as.numeric(pheno_file$PC1)
-pheno_file$PC2<-as.numeric(pheno_file$PC2)
-pheno_file$dnrage<-as.numeric(pheno_file$dnrage)
-pheno_file$age<-as.numeric(pheno_file$age)
-
-pheno_file$gvhprhrx_R1<-factor(pheno_file$gvhprhrx_R1)
-pheno_file$donorgp<-factor(pheno_file$donorgp)
-
+# Define variables types
+pheno_file <- pheno_file %>%
+  mutate(
+    # Numeric variables
+    across(
+      c(
+        event_aGvhD24, event_aGvhD34,
+        intxagvhd24, intxagvhd34, intxcgvhd, cgvhd,
+        PC1, PC2, dnrage, age
+      ),
+      ~ as.numeric(as.character(.x))
+    ),
+    
+    # Factor variables
+    across(
+      c(gvhprhrx_R1, donorgp),
+      as.factor
+    )
+  )
 
 # Donor data
 pheno_fileD = read_excel('MDS_imputed_Clinical_MDS&donor_March14th_2026.xlsx')
 genomatrixD = read.table("all494_1825_binary.vcf.txt",header=TRUE)
 snpInfoD = read_excel('SNP_POS_ALT_Func_1825_494_R2.xlsx')
 
-pheno_fileD$event_aGvhD24<-as.numeric(pheno_fileD$event_aGvhD24)
-pheno_fileD$event_aGvhD34<-as.numeric(pheno_fileD$event_aGvhD34)
-pheno_fileD$intxagvhd24<-as.numeric(pheno_fileD$intxagvhd24)
-pheno_fileD$intxagvhd34<-as.numeric(pheno_fileD$intxagvhd34)
-pheno_fileD$intxcgvhd<-as.numeric(pheno_fileD$intxcgvhd)
-pheno_fileD$cgvhd<-as.numeric(pheno_fileD$cgvhd)
-
-pheno_fileD$pcD1<-as.numeric(pheno_fileD$pcD1)
-pheno_fileD$pcD2<-as.numeric(pheno_fileD$pcD2)
-pheno_fileD$dnrage<-as.numeric(pheno_fileD$dnrage)
-pheno_fileD$age<-as.numeric(pheno_fileD$age)
-
-
-pheno_fileD$gvhprhrx_R1<-factor(pheno_fileD$gvhprhrx_R1)
-pheno_fileD$donorgp<-factor(pheno_fileD$donorgp)
+# Define variables types
+pheno_fileV <- pheno_fileV %>%
+  mutate(
+    # Numeric variables
+    across(
+      c(event_aGvhD24, event_aGvhD34,
+        intxagvhd24, intxagvhd34, intxcgvhd, cgvhd,
+        pc1, pc2, donorage, age),
+      as.numeric
+    ),
+    
+    # Factor variables
+    across(
+      c(donorgp, prophx),
+      as.factor
+    )
+  )
 
 
 
@@ -143,22 +148,23 @@ pheno_fileV$event_aGvhD24[pheno_fileV$event_aGvhD24==98] <- NA
 pheno_fileV$event_aGvhD34[pheno_fileV$event_aGvhD34==98] <- NA
 pheno_fileV$cgvhd[pheno_fileV$cgvhd== 99] <- NA
 
-
-pheno_fileV$event_aGvhD24<-as.numeric(pheno_fileV$event_aGvhD24)
-pheno_fileV$event_aGvhD34<-as.numeric(pheno_fileV$event_aGvhD34)
-pheno_fileV$intxagvhd24<-as.numeric(pheno_fileV$intxagvhd24)
-pheno_fileV$intxagvhd34<-as.numeric(pheno_fileV$intxagvhd34)
-pheno_fileV$intxcgvhd<-as.numeric(pheno_fileV$intxcgvhd)
-pheno_fileV$cgvhd<-as.numeric(pheno_fileV$cgvhd)
-
-
-pheno_fileV$pc1<-as.numeric(pheno_fileV$pc1)
-pheno_fileV$pc2<-as.numeric(pheno_fileV$pc2)
-pheno_fileV$donorage<-as.numeric(pheno_fileV$donorage)
-pheno_fileV$age<-as.numeric(pheno_fileV$age)
-
-pheno_fileV$donorgp<-factor(pheno_fileV$donorgp)
-pheno_fileV$prophx<-factor (pheno_fileV$prophx)
+# Define variables types
+pheno_fileV <- pheno_fileV %>%
+  mutate(
+    across(
+      c(
+        event_aGvhD24, event_aGvhD34,
+        intxagvhd24, intxagvhd34, intxcgvhd, cgvhd,
+        pc1, pc2, donorage, age
+      ),
+      ~ as.numeric(as.character(.x))
+    ),
+    
+    across(
+      c(donorgp, prophx),
+      as.factor
+    )
+  )
 
 
 # There is no Remove rows where prophx and cgvhd is NA
