@@ -1,0 +1,465 @@
+
+---
+title: "aGvHD24 Clinical Covariate Selection"
+author: "Shahram Arsang-Jang"
+date: "2026-01-20"
+output: html_document
+---
+
+
+### ===============================
+### (A) Data preparation
+### =============================== 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE
+)
+
+
+
+# Load packages 
+rm(list = ls())
+
+library(survival)
+library(MASS)
+library(dplyr)
+library(readxl)
+library(openxlsx)
+library(performance)
+#------------------------------------------------------------------------------#
+# Import analysis dataset
+data_aGvHD24 <- read_xlsx(
+  "C:/Users/Sarsangjang/Desktop/GVHD Project/Extra_files/Other_GVHD/New folder/imputed_data_MDS_r1.xlsx")
+
+# Convert required columns to numeric
+data_aGvHD24[1:28] <- lapply(
+  data_aGvHD24[1:28],
+  as.numeric
+)
+
+
+# Check percentage of missing values
+missing_summary_aGvHD24 <- data_aGvHD24 %>%
+  summarise(
+    across(
+      everything(),
+      ~ mean(is.na(.))
+    )
+  ) %>%
+  tidyr::pivot_longer(
+    cols = everything(),
+    names_to = "Variable",
+    values_to = "Missing_proportion"
+  ) %>%
+  filter(Missing_proportion > 0)
+
+missing_summary_aGvHD24
+```
+
+### ===============================
+### (B) Stepwise variable Selection; Acute GVHD24
+### =============================== 
+
+```{r , results='markup',echo = FALSE}
+
+# ============================================================
+# 1. Define candidate clinical covariates
+# ============================================================
+# COX-PH assumptions checked befor variable selection including multicolinearity and proportional hazard assumption for final model.#
+
+
+'
+Patient age
+Conditioning regimen
+Donor age
+WBC
+HCT-CI score
+Diagnosis to transplant (Month)
+GvHD prophylaxis
+Hypomethylating agents
+IPSS-R score
+Karnofsky score
+Therapy related/Secondary MDS
+Donor type
+Donor/recipient CMV status
+Donor/recipient sex match
+Graft source
+Number of Chemo treatments
+'
+
+
+covariates_aGvHD24 <- c(
+  "age",
+  "condint",
+  "dnrage",
+  "wbc1pr",
+  "coorgscore_r",
+  "indxtx_cat",
+  "gvhprhrx_r",
+  "hmapr_r",
+  "ipssrpr_r",
+  "kps_r",
+  "mdstype_r",
+  "donorgp",
+  "drcmvpr",
+  "drsex",
+  "graftype",
+  "nchemopr_r"
+)
+
+
+
+
+# ============================================================
+# 2. complete-case dataset for all models
+# ============================================================
+
+model_variables_aGvHD24 <- c(
+  "intxagvhd24",
+  "agvhd24",
+  covariates_aGvHD24
+)
+
+data_aGvHD24 <- data_aGvHD24 %>%
+  dplyr::select(
+    all_of(model_variables_aGvHD24)
+  ) %>%
+  filter(
+    complete.cases(.)
+  )
+
+nrow(data_aGvHD24)
+
+# ============================================================
+# 3. Full cause-specific Cox model
+# ============================================================
+
+formula_full_aGvHD24 <- as.formula(
+  paste(
+    "Surv(intxagvhd24, agvhd24) ~",
+    paste(
+      covariates_aGvHD24,
+      collapse = " + "
+    )
+  )
+)
+
+cox_full_aGvHD24 <- coxph(
+  formula_full_aGvHD24,
+  data = data_aGvHD24,
+  x = TRUE
+)
+
+summary(cox_full_aGvHD24)
+
+# ============================================================#
+
+check_collinearity(
+  cox_full_aGvHD24
+)
+# ============================================================#
+
+ph_test_aGvHD24 <- cox.zph(
+  cox_full_aGvHD24
+)
+
+ph_test_aGvHD24
+plot(ph_test_aGvHD24)
+
+
+# ============================================================
+# 4) Full model: HR (95% CI) and P-value
+# ============================================================
+
+summary_full_aGvHD24 <- summary(
+  cox_full_aGvHD24
+)
+
+results_full_aGvHD24 <- data.frame(
+  Variable = rownames(
+    summary_full_aGvHD24$coefficients
+  ),
+
+  `HR (95% CI)` = sprintf(
+    "%.2f (%.2f, %.2f)",
+    summary_full_aGvHD24$conf.int[, "exp(coef)"],
+    summary_full_aGvHD24$conf.int[, "lower .95"],
+    summary_full_aGvHD24$conf.int[, "upper .95"]
+  ),
+
+  `P-value` = ifelse(
+    summary_full_aGvHD24$coefficients[, "Pr(>|z|)"] < 0.001,
+    "<0.001",
+    sprintf(
+      "%.3f",
+      summary_full_aGvHD24$coefficients[, "Pr(>|z|)"]
+    )
+  ),
+
+  row.names = NULL,
+  check.names = FALSE
+)
+
+results_full_aGvHD24
+
+# ============================================================
+# 4. Final model
+# ============================================================
+
+cox_final_aGvHD24 <- stepAIC(
+  cox_full_aGvHD24,
+  direction = "both",
+  trace = TRUE
+)
+
+
+
+variables_retained_aGvHD24 <- attr(
+  terms(cox_final_aGvHD24),
+  "term.labels"
+)
+
+variables_retained_aGvHD24
+
+
+
+summary(
+  cox_final_aGvHD24
+)
+
+AIC_final_aGvHD24 <- AIC(
+  cox_final_aGvHD24
+)
+
+AIC_final_aGvHD24
+
+
+# ============================================================
+# 5. Final model HR, 95% CI, and P-values
+# ============================================================
+
+summary_final_aGvHD24 <- summary(
+  cox_final_aGvHD24
+)
+
+results_final_aGvHD24 <- data.frame(
+  Variable = rownames(
+    summary_final_aGvHD24$coefficients
+  ),
+
+  `HR (95% CI)` = sprintf(
+    "%.2f (%.2f, %.2f)",
+    summary_final_aGvHD24$conf.int[, "exp(coef)"],
+    summary_final_aGvHD24$conf.int[, "lower .95"],
+    summary_final_aGvHD24$conf.int[, "upper .95"]
+  ),
+
+  `P-value` = ifelse(
+    summary_final_aGvHD24$coefficients[, "Pr(>|z|)"] < 0.001,
+    "<0.001",
+    sprintf(
+      "%.3f",
+      summary_final_aGvHD24$coefficients[, "Pr(>|z|)"]
+    )
+  ),
+
+  row.names = NULL,
+  check.names = FALSE
+)
+
+results_final_aGvHD24
+
+# ============================================================
+# 6. Overall P-value and AIC after dropping each retained term
+# ============================================================
+
+tests_retained_aGvHD24 <- drop1(
+  cox_final_aGvHD24,
+  test = "Chisq"
+) %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column(
+    "Variable"
+  )
+
+tests_retained_aGvHD24
+
+
+# ============================================================
+# 7. Stepwise selection history
+# ============================================================
+
+selection_history_aGvHD24 <- as.data.frame(
+  cox_final_aGvHD24$anova
+)
+
+selection_history_aGvHD24
+
+
+# ============================================================
+# 8. Reconstruct model at every step
+# ============================================================
+
+current_terms <- attr(
+  terms(cox_full_aGvHD24),
+  "term.labels"
+)
+
+models_stepwise_aGvHD24 <- list()
+
+# Step 0: full model
+models_stepwise_aGvHD24[[1]] <- cox_full_aGvHD24
+
+
+if (nrow(selection_history_aGvHD24) > 1) {
+
+  for (i in 2:nrow(selection_history_aGvHD24)) {
+
+    action <- trimws(
+      as.character(
+        selection_history_aGvHD24$Step[i]
+      )
+    )
+
+    # Variable removed
+    if (
+      !is.na(action) &&
+      startsWith(action, "-")
+    ) {
+
+      removed_variable <- trimws(
+        sub("^-", "", action)
+      )
+
+      current_terms <- setdiff(
+        current_terms,
+        removed_variable
+      )
+    }
+
+    # Variable added
+    if (
+      !is.na(action) &&
+      startsWith(action, "+")
+    ) {
+
+      added_variable <- trimws(
+        sub("^\\+", "", action)
+      )
+
+      current_terms <- union(
+        current_terms,
+        added_variable
+      )
+    }
+
+    formula_step_aGvHD24 <- as.formula(
+      paste(
+        "Surv(intxagvhd24, agvhd24) ~",
+        paste(
+          current_terms,
+          collapse = " + "
+        )
+      )
+    )
+
+    models_stepwise_aGvHD24[[i]] <- coxph(
+      formula_step_aGvHD24,
+      data = data_aGvHD24,
+      x = TRUE
+    )
+  }
+}
+
+# ============================================================
+# 9. HR, CI, P-value, and AIC for ALL variables at EVERY step
+# ============================================================
+
+results_stepwise_aGvHD24 <- bind_rows(
+
+  lapply(
+    seq_along(models_stepwise_aGvHD24),
+    function(i) {
+
+      fit <- models_stepwise_aGvHD24[[i]]
+
+      model_summary <- summary(fit)
+
+      step_action <- if (i == 1) {
+        "Full model"
+      } else {
+        as.character(
+          selection_history_aGvHD24$Step[i]
+        )
+      }
+
+      data.frame(
+        Step = i - 1,
+
+        Step_action = step_action,
+
+        Variable = rownames(
+          model_summary$coefficients
+        ),
+
+        HR = model_summary$conf.int[
+          , "exp(coef)"
+        ],
+
+        Lower_95CI = model_summary$conf.int[
+          , "lower .95"
+        ],
+
+        Upper_95CI = model_summary$conf.int[
+          , "upper .95"
+        ],
+
+        P_value = model_summary$coefficients[
+          , "Pr(>|z|)"
+        ],
+
+        AIC = AIC(fit),
+
+        row.names = NULL
+      )
+    }
+  )
+) %>%
+
+  mutate(
+    `HR (95% CI)` = sprintf(
+      "%.2f (%.2f, %.2f)",
+      HR,
+      Lower_95CI,
+      Upper_95CI
+    ),
+
+    `P-value` = ifelse(
+      P_value < 0.001,
+      "<0.001",
+      sprintf("%.3f", P_value)
+    ),
+
+    AIC = round(
+      AIC,
+      2
+    )
+  )
+
+results_stepwise_aGvHD24
+
+
+# Save Results
+write.xlsx(
+  list(
+    "Full model" = results_full_aGvHD24,
+    "Final model" = results_final_aGvHD24,
+    "Selection history" = selection_history_aGvHD24,
+    "All selection steps" = results_stepwise_aGvHD24
+  ),
+  file = "aGvHD24_variable_selection_results.xlsx",
+  overwrite = TRUE
+)
+```
